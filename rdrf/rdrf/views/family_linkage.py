@@ -216,7 +216,7 @@ class FamilyLinkageManager(object):
         self._add_undo(patient, value)
 
     def _update_field_values(self, registry_model, patient_model):
-        default_context = patient_model.default_context
+        default_context = patient_model.default_context(registry_model)
         create_field_values(registry_model, patient_model, default_context, remove_existing=True)
 
     def set_as_relative(self, patient):
