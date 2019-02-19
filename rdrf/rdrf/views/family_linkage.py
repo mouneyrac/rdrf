@@ -10,6 +10,7 @@ from django.db import transaction
 
 from rdrf.models.definition.models import Registry
 from registry.patients.models import Patient, PatientRelative
+from explorer.utils import create_field_values
 
 import logging
 
@@ -108,6 +109,7 @@ class FamilyLinkageManager(object):
                 rel.relative_patient = patient
                 rel.save()
                 self.set_as_relative(patient)
+                
 
     def _index_changed(self):
         if self.original_index_dict["class"] != self.index_dict["class"]:
@@ -208,8 +210,14 @@ class FamilyLinkageManager(object):
                                value,
                                main_context_model)
 
+        self._update_field_values(self.registry_model, patient)
+
         fml_log("set patient %s to %s" % (patient, value))
         self._add_undo(patient, value)
+
+    def _update_field_values(self, registry_model, patient_model):
+        default_context = patient_model.default_context
+        create_field_values(registry_model, patient_model, default_context, remove_existing=True)
 
     def set_as_relative(self, patient):
         self._set_linkage_value(patient, self.family_linkage_relative_value)
