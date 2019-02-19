@@ -1396,6 +1396,7 @@ class PatientRelative(models.Model):
 
     def create_patient_from_myself(self, registry_model, working_groups):
         # Create the patient corresponding to this relative
+        from explorer.utils import create_field_values
         p = Patient()
         p.given_names = self.given_names
         p.family_name = self.family_name
@@ -1420,6 +1421,10 @@ class PatientRelative(models.Model):
             from rdrf.views.family_linkage import FamilyLinkageManager
             flm = FamilyLinkageManager(registry_model)
             flm.set_as_relative(p)
+
+        # report values for newly created patient ...
+        default_context = p.default_context(registry_model)
+        create_field_values(registry_model, p, default_context, remove_existing=True)
         return p
 
     def sync_relative_patient(self):

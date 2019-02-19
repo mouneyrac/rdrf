@@ -156,7 +156,8 @@ class FieldValue(models.Model):
 
     def get_calculated_value(self):
         try:
-            return float(self.raw_value)
+            # problem here is we're not storing the calculation return type
+            return str(self.raw_value)
         except BaseException:
             pass
         return self.raw_value
