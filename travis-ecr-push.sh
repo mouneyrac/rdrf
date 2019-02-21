@@ -14,7 +14,7 @@ set -e
 pip install --user awscli # install aws cli w/o sudo
 export PATH=$PATH:$HOME/.local/bin # put aws in the path
 
-eval $(aws ecr get-login --region ap-southeast-2) #needs AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY envvars
+eval $(aws ecr get-login --no-include-email --region ap-southeast-2) #needs AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY envvars
 env
 
 tag="?????"
