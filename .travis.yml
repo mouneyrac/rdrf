@@ -14,7 +14,7 @@ script:
 - export "BRANCH_NAME=$GIT_BRANCH"
 - ./travis-build.sh
 - ./travis-prodbuild.sh
-- ./travis-ecr-push
+- ./travis-ecr-push.sh
 - ./travis-lint.sh
 
 env:
