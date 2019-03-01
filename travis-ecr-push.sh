@@ -19,8 +19,11 @@ eval $(aws ecr get-login --no-include-email --region ap-southeast-2) #needs AWS_
 build_ver=$(./develop.sh build-version)
 
 tag="muccg/$CCG_PROJECT:$build_ver"
+echo "tag using ccg composer = $tag"
+
 
 ecrtag="$AWSACCOUNTID.dkr.ecr.us-east-1.amazonaws.com/$tag"  # needs account id in env
+echo "ecr tag = $ecrtag"
 
 docker push $ecrtag
 
