@@ -25,6 +25,6 @@ echo "tag using ccg composer = $tag"
 ecrtag="$AWSACCOUNTID.dkr.ecr.us-east-1.amazonaws.com/$tag"  # needs account id in env
 echo "ecr tag = $ecrtag"
 
-docker push $ecrtag
+docker push $tag $ecrtag
 
 
