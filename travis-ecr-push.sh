@@ -18,7 +18,7 @@ eval $(aws ecr get-login --no-include-email --region ap-southeast-2) #needs AWS_
 
 build_ver=$(./develop.sh build-version)
 
-tag="muccg/$CCG_PROJECT:$build_ver"
+tag="muccg/rdrf:$build_ver"
 echo "tag using ccg composer = $tag"
 
 
