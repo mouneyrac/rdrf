@@ -20,6 +20,7 @@ build_ver=$(./develop.sh build-version)
 image="muccg/rdrf:$build_ver"
 image=`echo $image | sed -e 's/\\r//g'`
 echo "image = $image"
+docker images
 
 ecrtag="$AWSACCOUNTID.dkr.ecr.us-east-1.amazonaws.com/$image"  # needs account id in env
 
