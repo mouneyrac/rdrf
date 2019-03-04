@@ -21,7 +21,8 @@ image="muccg/rdrf:$build_ver"
 echo "image = $image"
 
 ecrtag="$AWSACCOUNTID.dkr.ecr.us-east-1.amazonaws.com/$image"  # needs account id in env
-echo "ecr tag = $ecrtag"
+
+ecrtag=`echo $ecrtag | sed -e 's/\\r//'`
 
 docker tag $image $ecrtag
 docker push $ecrtag
