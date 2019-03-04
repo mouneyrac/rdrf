@@ -17,14 +17,13 @@ export PATH=$PATH:$HOME/.local/bin # put aws in the path
 eval $(aws ecr get-login --no-include-email --region ap-southeast-2) #needs AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY envvars
 
 build_ver=$(./develop.sh build-version)
+image="muccg/rdrf:$build_ver"
+echo "image = $image"
 
-tag="muccg/rdrf:$build_ver"
-echo "tag using ccg composer = $tag"
-
-
-ecrtag="$AWSACCOUNTID.dkr.ecr.us-east-1.amazonaws.com/$tag"  # needs account id in env
+ecrtag="$AWSACCOUNTID.dkr.ecr.us-east-1.amazonaws.com/$image"  # needs account id in env
 echo "ecr tag = $ecrtag"
 
-docker push $tag $ecrtag
+docker tag $image $ecrtag
+docker push $ecrtag
 
 
