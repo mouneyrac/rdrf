@@ -214,8 +214,8 @@ if [ "$1" = 'uwsgi' ]; then
     _django_check_deploy
 
     set -x
-    exec uwsgi --die-on-term --ini "${UWSGI_OPTS}"
-    #exec uwsgi --http :9000 --static-map /static=/data/static --wsgi-file /app/uwsgi/django.wsgi
+    #exec uwsgi --die-on-term --ini "${UWSGI_OPTS}"
+    exec uwsgi --http-socket :9000 --static-map /static=/data/static --wsgi-file /app/uwsgi/django.wsgi
 fi
 
 # local and test uwsgi entrypoint
@@ -228,8 +228,8 @@ if [ "$1" = 'uwsgi_local' ]; then
     _django_check_deploy
 
     set -x
-    exec uwsgi --die-on-term --ini "${UWSGI_OPTS}"
-    #exec uwsgi --http :9000 --static-map /static=/data/static --wsgi-file /app/uwsgi/django.wsgi
+    #exec uwsgi --die-on-term --ini "${UWSGI_OPTS}"
+    exec uwsgi --http-socket :9000 --static-map /static=/data/static --wsgi-file /app/uwsgi/django.wsgi
 fi
 
 # runserver entrypoint
