@@ -13,7 +13,7 @@ RUN mkdir -p /data \
 
 ADD build/${PROJECT_NAME}-${BUILD_VERSION}.tar.gz /
 
-EXPOSE 9100 9101
+EXPOSE 9100 9101 9000
 VOLUME ["/data"]
 
 # Drop privileges, set home for ccg-user
