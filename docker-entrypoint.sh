@@ -229,6 +229,7 @@ if [ "$1" = 'uwsgi_local' ]; then
 
     set -x
     #exec uwsgi --die-on-term --ini "${UWSGI_OPTS}"
+    info "[Run] exec'ing uwsgi with --http-socket :9000"
     exec uwsgi --http-socket :9000 --static-map /static=/data/static --wsgi-file /app/uwsgi/django.wsgi
 fi
 
