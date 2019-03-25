@@ -227,8 +227,13 @@ if [ "$1" = 'uwsgi_local' ]; then
     _django_check_deploy
 
     set -x
+
     # exec uwsgi --die-on-term --ini "${UWSGI_OPTS}"
-    exec uwsgi --http :9000 --static-map /static=/data/static --wsgi-file /app/uwsgi/django.wsgi
+    if [ "$USING_FARGATE" = 'true' ]; then
+        exec uwsgi --http :9000 --static-map /static=/data/static --wsgi-file /app/uwsgi/django.wsgi
+    else
+        exec uwsgi --die-on-term --ini "${UWSGI_OPTS}"
+    fi
 fi
 
 # runserver entrypoint
