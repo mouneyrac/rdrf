@@ -235,6 +235,9 @@ MANAGERS = ADMINS
 STATIC_ROOT = env.get('static_root', os.path.join(WEBAPP_ROOT, 'static'))
 STATIC_URL = '{0}/static/'.format(SCRIPT_NAME)
 
+if os.environ["CLOUD_STATIC_URL"]:
+    STATIC_URL = os.environ["CLOUD_STATIC_URL"]
+
 # TODO AH I can't see how this setting does anything
 # for local development, this is set to the static serving directory. For
 # deployment use Apache Alias
