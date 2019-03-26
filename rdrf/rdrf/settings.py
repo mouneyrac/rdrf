@@ -9,8 +9,17 @@ from rdrf.system_role import SystemRoles
 
 env = EnvConfig()
 
-SCRIPT_NAME = env.get("script_name", os.environ.get("HTTP_SCRIPT_NAME", ""))
-FORCE_SCRIPT_NAME = env.get("force_script_name", "") or SCRIPT_NAME or None
+
+def env_get(k, default=None):
+    # allow cloud override
+    cloud_key = "CLOUD_%s" % k.upper()
+    if cloud_key in os.environ:
+        return env.get(cloud_key, default)
+    else:
+        return env.get(k, default)
+
+SCRIPT_NAME = env_get("script_name", os.environ.get("HTTP_SCRIPT_NAME", ""))
+FORCE_SCRIPT_NAME = env_get("force_script_name", "") or SCRIPT_NAME or None
 
 WEBAPP_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -232,11 +241,10 @@ ADMINS = [
 MANAGERS = ADMINS
 
 
-STATIC_ROOT = env.get('static_root', os.path.join(WEBAPP_ROOT, 'static'))
-STATIC_URL = '{0}/static/'.format(SCRIPT_NAME)
 
-if os.environ["CLOUD_STATIC_URL"]:
-    STATIC_URL = os.environ["CLOUD_STATIC_URL"]
+
+STATIC_ROOT = env_get('static_root', os.path.join(WEBAPP_ROOT, 'static'))
+STATIC_URL = env_get("static_url", '{0}/static/'.format(SCRIPT_NAME))
 
 # TODO AH I can't see how this setting does anything
 # for local development, this is set to the static serving directory. For
