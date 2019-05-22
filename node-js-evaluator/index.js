@@ -7,10 +7,6 @@ const port = 3131;
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
 
-
-
-
-
 const jscodetoeval = `
 class Rdrf {
     log(msg) {

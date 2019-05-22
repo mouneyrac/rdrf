@@ -28,14 +28,11 @@ class Command(BaseCommand):
 
         ##################### ALGO #########################################################
 
-        print("")
-        print("========================= BEGIN ===============================")
-        print("")
         start = time.time()
         # retrieve all cde with a calculated field
         cdes = CommonDataElement.objects.exclude(calculation='')
-        for cde in cdes:
-            print(f"Code: {cde.code}")
+        # for cde in cdes:
+        #     print(f"Code: {cde.code}")
 
         # Building the tree of form values so we can access them quickly.
         # for all registry
@@ -46,9 +43,6 @@ class Command(BaseCommand):
         forms = RegistryForm.objects.all()
         cde_values_dict = {}
         datacdes = {}
-        print("")
-        print("===== BUILDING THE CDE VALUES TREE FOR FORMS CONTAINING AT LEAST ONE CALCULATED CDE =====")
-        print("")
 
         for form in forms:
 
@@ -94,12 +88,7 @@ class Command(BaseCommand):
                                                                             section.code: {**existingvalues,
                                                                                            cde: cdeobject}}}}
 
-        print(f"{cde_values_dict}")
-
-        print("")
-        print(
-            "=============================== CALL WS AND STORE NEW VALUES IN DB =========================================")
-        print("")
+        # print(f"{cde_values_dict}")
 
         # for registry in cde_values_dict:
         #     print(registry)
@@ -139,19 +128,20 @@ class Command(BaseCommand):
                             if calculatedcde.code in jscontextvar.keys():
 
                                 print(f"{calculatedcde.code}")
-                                print(f"CALCULATION: {calculatedcde.calculation}")
-                                print(f"PATIENT: {patient}")
-                                print(f"PATIENT DATE OF BIRTH: {patient.date_of_birth.__format__('%Y-%m-%d')}")
+                                # print(f"CALCULATION: {calculatedcde.calculation}")
+                                # print(f"PATIENT: {patient}")
+                                # print(f"PATIENT DATE OF BIRTH: {patient.date_of_birth.__format__('%Y-%m-%d')}")
                                 simple_patient = {'sex': patient.sex, 'date_of_birth': patient.date_of_birth.__format__("%Y-%m-%d")}
-                                print(f"CONTEXT: {jscontextvar}")
+                                # print(f"CONTEXT: {jscontextvar}")
                                 mockcode = """
                                 class Rdrf {
                                     log(msg) {
                                         console.log(msg);
                                     }
                                 
-                                    get(...anything) {
-                                        console.log("A function is calling RDRF.get ADSAFE - ignoring...");
+                                    get(data, key) {
+                                        return data[key];
+                                        // console.log("A function is calling RDRF.get ADSAFE - ignoring...");
                                     }
                                 }
                                 
@@ -173,10 +163,6 @@ class Command(BaseCommand):
 
         end = time.time()
         print(end - start)
-
-        print("")
-        print("========================== END ===============================")
-        print("")
 
         # Run some test
         # set data
