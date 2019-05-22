@@ -9,6 +9,8 @@ import urllib.parse
 
 from datetime import datetime
 
+import time
+
 
 class Command(BaseCommand):
     help = 'Update calculated field values. It is mainly use to trigger periodic update.'
@@ -29,7 +31,7 @@ class Command(BaseCommand):
         print("")
         print("========================= BEGIN ===============================")
         print("")
-
+        start = time.time()
         # retrieve all cde with a calculated field
         cdes = CommonDataElement.objects.exclude(calculation='')
         for cde in cdes:
@@ -37,11 +39,10 @@ class Command(BaseCommand):
 
         # Building the tree of form values so we can access them quickly.
         # for all registry
-        # for all form
+        # for all form with at least one cde is calculated
         # for all sections
-        # if at least one cde is calculated
         # for all cde
-        # save cde_values_dict {..., registry_id:{..., form_id:{..., section_id:{..., cde_id:cde}}}}
+        # save cde_values_dict {..., registry_id:{..., form_id:{..., section_id:{..., cde_id:cdeobject}}}}
         forms = RegistryForm.objects.all()
         cde_values_dict = {}
         datacdes = {}
@@ -169,6 +170,9 @@ class Command(BaseCommand):
                                 print(f"----------------------- END CALCULATION --------------------------")
 
                         # store the new form value in the ClinicalData model
+
+        end = time.time()
+        print(end - start)
 
         print("")
         print("========================== END ===============================")

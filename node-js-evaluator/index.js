@@ -10,14 +10,16 @@ app.use(bodyParser.urlencoded({extended: true}));
 
 
 
+
 const jscodetoeval = `
 class Rdrf {
     log(msg) {
         console.log(msg);
     }
 
-    get(...anything) {
-        console.log("A function is calling RDRF.get ADSAFE - ignoring...");
+    get(data,key) {
+        return data[key];
+        // console.log("A function is calling RDRF.get ADSAFE - ignoring...");
     }
 }
 
@@ -25,7 +27,6 @@ class Rdrf {
 RDRF = new Rdrf();
 
 patient = {"sex": "1", "date_of_birth": "2000-05-10"};
-
 context = {
     'FHconsentDate': '09-05-2019',
     'DateOfAssessment': '10-05-2019',
@@ -34,6 +35,23 @@ context = {
     'CDEIndexOrRelative': 'fh_is_index',
     'CDEfhDutchLipidClinicNetwork': '24',
     'CDE00024': 'Definite',
+    'CDE00003': 'fh2_y',
+    'FHFamilyHistoryChild': 'fh_n',
+    'CDE00004': 'fh2_y',
+    'FHFamHistTendonXanthoma': 'fh2_y',
+    'FHFamHistArcusCornealis': 'fh2_y',
+    'CDE00011': 'fhpremcvd_yes_corheartdisease',
+    'FHMyocardialInfarction': '',
+    'FHAgeAtMI': '',
+    'FHCoronaryRevasc': '',
+    'FHAgeAtCV': '',
+    'FHPersHistCerebralVD': 'fh2_y',
+    'FHAorticValveDisease': '',
+    'FHSupravalvularDisease': '',
+    'FHPremNonCoronary': '',
+    'CDE00001': 'y',
+    'CDE00002': 'y',
+    'FHXanthelasma': '',
     'CDE00013': 10.0,
     'CDE00019': 10.0,
     'PlasmaLipidTreatment': 'FAEzetimibe/atorvastatin20',
@@ -63,26 +81,30 @@ context = {
     'FHCVDOther': ''
 }
 
-function bad(value) {
-    return  (value == null) || ( value == undefined) || isNaN(value);
+function subscript(data, key) {
+  // safe access to arrays
+  return RDRF.get(data, key);
 }
 
+function bad(value) {
+    return  (value === null) || ( value === undefined) || isNaN(value);
+}
 
 function convertDate(datestring) {
-     // use this to on patient demographics dates
+    // use this to on patient demographics dates
     var dateParts = datestring.split("-");
-    var day = parseInt(dateParts[2]);
-    var month = parseInt(dateParts[1]);
-    var year = parseInt(dateParts[0]);
+    var day = parseInt(subscript(dateParts, 2), 10);
+    var month = parseInt(subscript(dateParts,1), 10);
+    var year = parseInt(subscript(dateParts,0), 10);
     return new Date(year,month,day);
 }
 
 function convertDate2(datestring) {
     // date values in clinical form parsed this way
     var dateParts = datestring.split("-");
-    var day = parseInt(dateParts[0]);
-    var month = parseInt(dateParts[1]);
-    var year = parseInt(dateParts[2]);
+    var day = parseInt(subscript(dateParts,0), 10);
+    var month = parseInt(subscript(dateParts,1), 10);
+    var year = parseInt(subscript(dateParts,2), 10);
     return new Date(year,month,day);
 }
 
@@ -95,199 +117,214 @@ function patientAgeAtAssessment(dob, assessmentDate) {
    return yearsOld;
 }
 
-
 function patientAgeAtAssessment2(dob, assessmentDate) {
     var dos = convertDate2(assessmentDate);
     var birthday = convertDate(dob);
     var age = dos.getFullYear() - birthday.getFullYear();
     var m = dos.getMonth() - birthday.getMonth();
     if (m < 0 || (m === 0 && dos.getDate() < birthday.getDate())) {
-        age--;
+        age -= 1;
     }
 
     return age;
 
 }
 
+function getFloat(x) {
+    var y = parseFloat(x);
+    if (! isNaN(y)) {
+        return y;
+    }
+    return null;
+}
 
+function getFilledOutScore(x,y) {
+    var xval = getFloat(x);
+    if (xval !== null) {
+       return xval;
+    }
+    return getFloat(y);
+ }
 
 function getLDL(context) {
-   var untreated = context.CDE00013;
-   var adjusted = context.LDLCholesterolAdjTreatment;
-   var L;
+    var untreated = context.CDE00013;
+    var adjusted = context.LDLCholesterolAdjTreatment;
+    return getFilledOutScore(untreated, adjusted);
+}
 
-   try {
-      L = parseFloat(untreated);
-      if ( isNaN(L)) {
-        throw new Error("untreated not filled out");
-      }
-      return L;
+function catchild(context) {
+    // for index patients
+    var L = getLDL(context);
+    RDRF.log("catchild: L = " + L);
+
+    if (bad(L)) {
+        return "";
+    }
+
+    function anyrel(context) {
+      return ( (context.CDE00003 === "fh2_y") || ( context.CDE00004 === "fh2_y") || ( context.FHFamHistTendonXanthoma === "fh2_y") || ( context.FHFamHistArcusCornealis === "fh2_y" ) );
+    }
+
+    //Definite if DNA Analysis is Yes
+    //other wise
+    if (L > 5.0) {
+     return "Highly Probable";
+    }
+
+   if ((L >= 4.0) && anyrel(context)) {
+     return "Probable";
    }
 
-   catch (err) {
-      try {
-         // try adjusted value
-         L = parseFloat(adjusted);
-         if (! isNaN(L) ){
-            return L;
-         }
-         else {
-          return null;
-         }
-      }
+    if (L >= 4.0) {
+      return "Possible";
+   }
 
-      catch (err2) {
-         return null;
-      }
-    }
+    return "Unlikely";
 
 }
 
-
-function getScore(context,patient) {
-        var assessmentDate = context.DateOfAssessment;
-
-        var isAdult = patientAgeAtAssessment2(patient.date_of_birth, assessmentDate) >= 18;
-        var index = context.CDEIndexOrRelative == "fh_is_index";
-        var relative = context.CDEIndexOrRelative == "fh_is_relative";
-
-
-
-        var YES = "fh2_y";
-
-        // family history
-        var FAM_HIST_PREM_CVD_FIRST_DEGREE_RELATIVE = context.CDE00004;
-        var FAM_HIST_HYPERCHOL_FIRST_DEGREE_RELATIVE = context.CDE00003;
-        var FAM_HIST_CHILD_HYPERCOL = context.FHFamilyHistoryChild;
-        var YES_CHILD = "y_childunder18";
-        var FAM_HIST_TENDON_FIRST_DEGREE_RELATIVE = context.FHFamHistTendonXanthoma;
-        var FAM_HIST_ARCUS_CORNEALIS_FIRST_DEGREE_RELATIVE = context.FHFamHistArcusCornealis;
-
-        // clinical history
-        var PERS_HIST_COR_HEART = context.CDE00011;
-        var HAS_COR_HEART_DISEASE = "fhpremcvd_yes_corheartdisease";
-        var PERS_HIST_CVD = context.FHPersHistCerebralVD;
-
-        // physical examination
-        var TENDON_XANTHOMA = context.CDE00001;
-        var ARCUS_CORNEALIS = context.CDE00002;
-
-
-
-
-
-    function  familyHistoryScore() {
-        var score  = 0;
-
-        if ( (FAM_HIST_PREM_CVD_FIRST_DEGREE_RELATIVE  == YES) ||  (FAM_HIST_HYPERCHOL_FIRST_DEGREE_RELATIVE == YES )) {
-            score += 1;
-        }
-
-        if ( ((FAM_HIST_TENDON_FIRST_DEGREE_RELATIVE == YES) || (FAM_HIST_ARCUS_CORNEALIS_FIRST_DEGREE_RELATIVE == YES))  ||  (FAM_HIST_CHILD_HYPERCOL == YES_CHILD)) {
-            score += 2;
-        }
-
-        return score;
-    }
-
-
-    function clinicalHistoryScore() {
-        var score = 0;
-
-                if ( PERS_HIST_COR_HEART == HAS_COR_HEART_DISEASE) {
-                    score += 2;
-                }
-
-                if (PERS_HIST_CVD == YES) {
-                    score += 1;
-                }
-
-                return score;
-
-    }
-
-    function physicalExaminationScore() {
-        var score = 0;
-
-        if ( TENDON_XANTHOMA == "y" ) {
-                        score += 6;
-                }
-
-                if ( ARCUS_CORNEALIS == "y" ) {
-                        score += 4;
-        }
-
-        return score;
-    }
-
-    function investigationScore() {
-          var L = getLDL(context);
-
-          if (bad(L)) {
-            throw new Error("Please fill in LDL values");
-          }
-
-          else {
-            var score = 0;
-
-            if ( ( 4.0 <= L ) && ( L < 5.0 )) {
-                score += 1;
-            }
-
-            // NB the sheet uses <= 6.4 but technically we could have L = 6.45 say
-            // whicn using the sheet would give undefined ...
-            //add 3 to score if 5.0 <= L <= 6.4
-            if ( ( 5.0 <= L ) && ( L < 6.5 )) {
-                score += 3;
-            }
-
-            //add 5 to score if 6.5 <= L <= 8.4
-            if ( (6.5 <= L ) && ( L < 8.5)) {
-                score += 5;
-            }
-
-            //add 8 to score if L >= 8.5
-
-            if ( L >= 8.5) {
-                score += 8;
-            }
-
-            return score;
-          }
-    }
-
-             if (index) {
-              console.log("patient is index");
-        if (isAdult) {
-
-            try {
-                var score = familyHistoryScore() + clinicalHistoryScore() + physicalExaminationScore() + investigationScore();
-                return score;
-            }
-
-            catch (err) {
-                return "";
-            }
-    }
-
-       else {
-        console.log("child - score blank");
-        // child  - score not used ( only categorisation )
+function catadult(score) {
+    // for index patients
+    if (bad(score)) {
         return "";
     }
-}
 
-
-else if (relative ) {
-    console.log("relative – score blank");
-   // relative  - score not used ( only categorisation )
+    if (score === "") {
         return "";
     }
+
+
+    if (score < 3) {
+        return "Unlikely";
+    }
+
+    if ((3 <= score) && (score <  6)) {
+        return "Possible";
+    }
+
+    if ((6 <= score) && (score <= 8)) {
+       return "Probable";
+    }
+
+    return "Definite";
 }
 
+function catrelative(sex, age, lipid_score) {
+   var table,BIG, MALE_TABLE, FEMALE_TABLE;
+
+    if (bad(lipid_score)) {
+        return "";
+    }
+    RDRF.log("sex = " + sex + " age = " + age + " lipid score = " + lipid_score);
+    table = null;
+    BIG = 99999999999999.00;
+    MALE_TABLE = [
+     //  AGE         Unlikely   Uncertain  Likely
+     [   [0,14]  , [  [-1,3.099], [3.1,3.499], [3.5, BIG] ]],
+     [   [15,24]  , [ [-1,2.999], [3.0,3.499], [3.5, BIG] ]],
+     [   [25,34]  , [ [-1,3.799], [3.8,4.599], [4.6, BIG] ]],
+     [   [35,44]  , [ [-1,3.999], [4.0,4.799], [4.8, BIG] ]],
+     [   [45,54]  , [ [-1,4.399], [4.4,5.299], [5.3, BIG] ]],
+     [   [55,999]  ,[ [-1,4.299], [4.3,5.299], [5.3, BIG] ]]];
+
+     FEMALE_TABLE = [
+     //  AGE         Unlikely   Uncertain  Likely
+     [   [0,14]  , [ [-1,3.399], [3.4,3.799], [3.8, BIG] ]],
+     [   [15,24]  , [ [-1,3.299], [3.3,3.899], [3.9, BIG] ]],
+     [   [25,34]  , [ [-1,3.599], [3.6,4.299], [4.3, BIG] ]],
+     [   [35,44]  , [ [-1,3.699], [3.7,4.399], [4.4, BIG] ]],
+     [   [45,54]  , [ [-1,3.999], [4.0,4.899], [4.9, BIG] ]],
+     [   [55,999] , [ [-1,4.399], [4.4,5.299], [5.3, BIG] ]]];
+
+     function inRange(value,a,b) {
+        return (value >= a) && (value <= b);
+     }
+
+     function lookupCat(age, score,table) {
+        var row, ageInterval,ageMin,ageMax,catRanges;
+        var range, rangeMin, rangeMax, category;
+        var cats = ["Unlikely", "Uncertain", "Likely"];
+        var i,j;
+        for (i=0;i<table.length;i=i+1) {
+            row = subscript(table,i);
+            ageInterval = subscript(row,0);
+            ageMin = subscript(ageInterval,0);
+            ageMax = subscript(ageInterval,1);
+            if (inRange(age,ageMin,ageMax)) {
+                catRanges = subscript(row,1);
+                for (j=0;j<3;j=j+1) {
+                    RDRF.log("checking " + subscript(cats,j));
+                    range = subscript(catRanges,j);
+                    rangeMin = subscript(range,0);
+                    rangeMax = subscript(range,1);
+
+                    RDRF.log("min = " + rangeMin);
+                    RDRF.log("max = " + rangeMax);
 
 
-context.result = getScore(context, patient);
+                    if (inRange(score,rangeMin, rangeMax)) {
+                        category = subscript(cats,j);
+                        RDRF.log("in range!");
+                        return category;
+                    }
+                }
+            }
+        }
+
+        RDRF.log("age = " + age + " score = " + score + " no cat?!");
+        return "";
+
+     }
+
+
+    if (sex === '1') {
+        table = MALE_TABLE;
+    }
+
+    if (sex === '2') {
+        table = FEMALE_TABLE;
+    }
+
+    if (table === null) {
+        return "";
+    }
+
+    return lookupCat(age, lipid_score, table);
+ }
+
+function categorise(context,patient) {
+  var dutch_lipid_network_score = context.CDEfhDutchLipidClinicNetwork;
+  var assessmentDate = context.DateOfAssessment;
+  var isAdult = patientAgeAtAssessment2(patient.date_of_birth, assessmentDate) >= 18.0;
+  var index = context.CDEIndexOrRelative === "fh_is_index";
+  var relative = context.CDEIndexOrRelative === "fh_is_relative";
+  var age, L, sex, cr;
+
+  if (index) {
+    RDRF.log("patient is index");
+    if (isAdult) {
+        RDRF.log("patient is an adult");
+        return catadult(dutch_lipid_network_score);
+    }
+
+    RDRF.log("patient is a child");
+    return catchild(context);
+
+  }
+
+  if (relative ) {
+    RDRF.log("patient is a relative");
+    age = patientAgeAtAssessment2(patient.date_of_birth, assessmentDate);
+    L = getLDL(context);
+    sex = patient.sex;
+    cr = catrelative(sex, age, L);
+    RDRF.log("cat relative = " + cr);
+    return cr;
+  }
+}
+
+context.result = categorise(context, patient);
+
 
 
 `;
