@@ -24,7 +24,6 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         self.stdout.write(self.style.SUCCESS(options['patient_id']))
-        self.stdout.write(self.style.SUCCESS('All fields have been successfully updated'))
 
         start = time.time()
         # Retrieve all calculated fields.
@@ -136,8 +135,8 @@ class Command(BaseCommand):
                             # For each calculated cdes in this form, do a WS call to the node server evaluation the js code.
                             for calculated_cde_model in calculated_cde_models:
                                 if calculated_cde_model.code in context_var.keys():
-
                                     print(f"{calculated_cde_model.code}")
+                                    # Build the web service call parameter.
                                     patient_var = {'sex': patient_model.sex, 'date_of_birth': patient_model.date_of_birth.__format__("%Y-%m-%d")}
                                     rdrf_var = """
                                     class Rdrf {
@@ -154,15 +153,19 @@ class Command(BaseCommand):
                                     RDRF = new Rdrf();"""
                                     js_code = f"{rdrf_var} patient = {json.dumps(patient_var)}; context = {json.dumps(context_var)}; {calculated_cde_model.calculation}"
                                     headers = {'Content-Type': 'application/json'}
-
+                                    # we encode the JS function.
                                     encoded_js_code = {"jscode": urllib.parse.quote(js_code)}
-
+                                    # Retrieve the new value by web service.
                                     resp = requests.post(url='http://node_js_evaluator:3131/eval', headers=headers,
                                                          json=encoded_js_code)
+
                                     print('Result: {}'.format(resp.json()))
                                     print(f"----------------------- END CALCULATION --------------------------")
 
-                        # TODO: store the new form value in the ClinicalData model
+                                    # TODO: store the new form value in the ClinicalData model
+
+                                    # TODO: web service call + storing value could be done in a function run asynchronously
+                                    #       (not that simple because we need to check the node server can accept that many connections | postgres transaction to be implemented too).
 
         end = time.time()
-        print(end - start)
+        self.stdout.write(self.style.SUCCESS(f"All fields have been successfully updated in {end - start} seconds."))
